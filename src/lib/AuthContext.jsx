@@ -4,8 +4,20 @@ import { supabase, isSupabaseConfigured, auth } from '@/api/supabaseClient';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('funfable_demo_admin') === 'true') {
+      return {
+        id: 'demo-admin-id',
+        email: 'admin@funfable.store',
+        role: 'admin',
+        user_metadata: { full_name: 'Store Administrator' }
+      };
+    }
+    return null;
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return typeof window !== 'undefined' && localStorage.getItem('funfable_demo_admin') === 'true';
+  });
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -40,8 +52,22 @@ export const AuthProvider = ({ children }) => {
   const checkUserAuth = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
+
+      // Check demo admin session first
+      if (typeof window !== 'undefined' && localStorage.getItem('funfable_demo_admin') === 'true') {
+        setUser({
+          id: 'demo-admin-id',
+          email: 'admin@funfable.store',
+          role: 'admin',
+          user_metadata: { full_name: 'Store Administrator' }
+        });
+        setIsAuthenticated(true);
+        setIsLoadingAuth(false);
+        setAuthChecked(true);
+        return;
+      }
+
       if (!isSupabaseConfigured) {
-        // Fallback state when Supabase credentials are not filled yet
         setUser(null);
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
@@ -77,7 +103,7 @@ export const AuthProvider = ({ children }) => {
           const userWithRole = await fetchProfile(session.user);
           setUser(userWithRole);
           setIsAuthenticated(true);
-        } else {
+        } else if (localStorage.getItem('funfable_demo_admin') !== 'true') {
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -91,8 +117,29 @@ export const AuthProvider = ({ children }) => {
     }
   }, [checkUserAuth]);
 
+  const loginAsDemoAdmin = (redirectUrl = '/admin') => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('funfable_demo_admin', 'true');
+    }
+    setUser({
+      id: 'demo-admin-id',
+      email: 'admin@funfable.store',
+      role: 'admin',
+      user_metadata: { full_name: 'Store Administrator' }
+    });
+    setIsAuthenticated(true);
+    setIsLoadingAuth(false);
+    setAuthChecked(true);
+    if (redirectUrl) {
+      window.location.href = redirectUrl;
+    }
+  };
+
   const logout = async (redirectUrl = '/') => {
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('funfable_demo_admin');
+      }
       await auth.logout(redirectUrl);
       setUser(null);
       setIsAuthenticated(false);
@@ -113,6 +160,7 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       authError,
       authChecked,
+      loginAsDemoAdmin,
       logout,
       navigateToLogin,
       checkUserAuth

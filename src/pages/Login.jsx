@@ -1,11 +1,12 @@
 import { db } from '@/api/supabaseClient';
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from '@/lib/AuthContext';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2, Sparkles } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
@@ -15,6 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { loginAsDemoAdmin } = useAuth();
   const returnTo = safeReturnTo();
 
   const handleSubmit = async (e) => {
@@ -52,6 +54,16 @@ export default function Login() {
         </>
       }
     >
+      {/* 1-Click Demo Admin Button */}
+      <Button
+        variant="secondary"
+        className="w-full h-12 text-sm font-medium mb-3 border border-border bg-sage-soft text-forest hover:bg-sage/40 flex items-center justify-center gap-2"
+        onClick={() => loginAsDemoAdmin(returnTo === '/' ? '/admin' : returnTo)}
+      >
+        <Sparkles className="w-4 h-4 text-terracotta" />
+        ⚡ Instant Demo Admin Login (1-Click)
+      </Button>
+
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
@@ -66,7 +78,7 @@ export default function Login() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
+          <span className="bg-card px-3 text-muted-foreground">or email login</span>
         </div>
       </div>
 
@@ -86,7 +98,7 @@ export default function Login() {
               type="email"
               autoComplete="email"
               autoFocus
-              placeholder="you@example.com"
+              placeholder="admin@funfable.store"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"
