@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -7,8 +7,8 @@ import { Package, ShoppingCart, IndianRupee, TrendingUp } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 
 export default function Dashboard() {
-  const { data: products } = useQuery({ queryKey: ['allProducts'], queryFn: () => db.entities.Product.list('-created_date', 500) });
-  const { data: orders } = useQuery({ queryKey: ['allOrders'], queryFn: () => db.entities.Order.list('-created_date', 500) });
+  const { data: products } = useQuery({ queryKey: ['allProducts'], queryFn: () => db.entities.Product.list('-created_at', 500) });
+  const { data: orders } = useQuery({ queryKey: ['allOrders'], queryFn: () => db.entities.Order.list('-created_at', 500) });
   const revenue = (orders || []).reduce((s, o) => s + (o.total || 0), 0);
   const stats = [
     { label: 'Products', value: (products || []).length, icon: Package },

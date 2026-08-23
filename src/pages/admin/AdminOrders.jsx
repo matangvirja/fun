@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -10,7 +10,7 @@ const STATUSES = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
 
 export default function AdminOrders() {
   const qc = useQueryClient();
-  const { data: orders } = useQuery({ queryKey: ['allOrders'], queryFn: () => db.entities.Order.list('-created_date', 500) });
+  const { data: orders } = useQuery({ queryKey: ['allOrders'], queryFn: () => db.entities.Order.list('-created_at', 500) });
   const [view, setView] = useState(null);
 
   const updateStatus = async (id, status) => {
@@ -30,7 +30,7 @@ export default function AdminOrders() {
           <tbody>
             {(orders || []).map(o => (
               <tr key={o.id} className="border-b border-border last:border-0 hover:bg-secondary/50">
-                <td className="p-4 text-sm text-muted-foreground">#{o.id.slice(0, 8)}</td>
+                <td className="p-4 text-sm text-muted-foreground">#{o.id?.slice(0, 8)}</td>
                 <td className="p-4"><p className="font-medium text-forest text-sm">{o.customer_name || 'Guest'}</p><p className="text-xs text-muted-foreground">{o.customer_email}</p></td>
                 <td className="p-4 font-medium text-forest text-sm">{formatPrice(o.total)}</td>
                 <td className="p-4">
@@ -53,7 +53,7 @@ export default function AdminOrders() {
       {view && (
         <div className="fixed inset-0 bg-forest/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setView(null)}>
           <div className="bg-card squircle-lg p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="font-display text-xl text-forest">Order #{view.id.slice(0, 8)}</h3><button onClick={() => setView(null)}><X className="w-5 h-5" /></button></div>
+            <div className="flex items-center justify-between mb-4"><h3 className="font-display text-xl text-forest">Order #{view.id?.slice(0, 8)}</h3><button onClick={() => setView(null)}><X className="w-5 h-5" /></button></div>
             <div className="space-y-1 text-sm mb-4">
               <p><span className="text-muted-foreground">Customer:</span> {view.customer_name}</p>
               <p><span className="text-muted-foreground">Email:</span> {view.customer_email}</p>

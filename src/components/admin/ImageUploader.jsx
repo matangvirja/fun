@@ -1,7 +1,7 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 
 export default function ImageUploader({ images = [], onChange }) {
@@ -14,10 +14,16 @@ export default function ImageUploader({ images = [], onChange }) {
       const urls = [];
       for (const file of files) {
         const { file_url } = await db.integrations.Core.UploadFile({ file });
-        urls.push(file_url);
+        if (file_url) urls.push(file_url);
       }
       onChange([...(images || []), ...urls]);
-    } finally { setUploading(false); e.target.value = ''; }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
   return (
     <div>
@@ -28,12 +34,22 @@ export default function ImageUploader({ images = [], onChange }) {
             <button type="button" onClick={() => onChange(images.filter((_, j) => j !== i))} className="absolute top-1 right-1 w-6 h-6 bg-forest/80 text-paper rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100"><X className="w-3 h-3" /></button>
           </div>
         ))}
-        <label className="aspect-square squircle-sm border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:bg-secondary text-muted-foreground">
-          {uploading ? <span className="text-xs">Uploading…</span> : <><Upload className="w-5 h-5 mb-1" /><span className="text-xs">Upload</span></>}
-          <input type="file" accept="image/*" multiple className="hidden" onChange={onFiles} />
+        <label className="aspect-square squircle-sm border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:bg-secondary text-muted-foreground transition">
+          {uploading ? (
+            <div className="flex flex-col items-center gap-1">
+              <Loader2 className="w-5 h-5 animate-spin text-forest" />
+              <span className="text-xs">Uploading…</span>
+            </div>
+          ) : (
+            <>
+              <Upload className="w-5 h-5 mb-1 text-forest" />
+              <span className="text-xs">Upload</span>
+            </>
+          )}
+          <input type="file" accept="image/*" multiple className="hidden" onChange={onFiles} disabled={uploading} />
         </label>
       </div>
-      <p className="text-xs text-muted-foreground">Upload images. The first image is the cover.</p>
+      <p className="text-xs text-muted-foreground">Upload images to Supabase Storage. The first image is the cover.</p>
     </div>
   );
 }

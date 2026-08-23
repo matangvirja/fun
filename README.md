@@ -1,77 +1,61 @@
-# Base44 Project
+# FunFable — Toy Store (Powered by Supabase & Vite)
 
-Use this repository to run and edit the app locally, then publish changes back through db.
+FunFable is a modern, handcrafted e-commerce web application for children's toys, built with React, Vite, Tailwind CSS, TanStack Query, and **Supabase** (Database, Auth & Storage).
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+---
 
-## Prerequisites
+## 🚀 Getting Started
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+### 1. Prerequisites
+- Node.js (v18 or higher)
+- A free [Supabase](https://supabase.com) account
 
-See the [Base44 CLI docs](https://docs.db.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
-
-## Run Locally
-
-Run the full local development environment from the project root:
-
+### 2. Install Dependencies
 ```bash
-base44 dev
+npm install
 ```
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
+### 3. Configure Supabase
 
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
+1. Create a new project in [Supabase](https://supabase.com/dashboard).
+2. Go to **SQL Editor** in your Supabase dashboard and run the contents of [`supabase/schema.sql`](./supabase/schema.sql).
+   - This creates all tables (`products`, `categories`, `orders`, `site_settings`, `profiles`, `contact_inquiries`), sets up Row Level Security (RLS) policies, creates the `product-images` storage bucket, and seeds starter data.
+3. Copy `.env.example` to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+4. Add your Supabase credentials (from **Project Settings > API**):
+   ```env
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
 
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
-
-In a Base44 project this lives in `base44/config.jsonc`.
-
-## Run Only The Frontend
-
-If you only want to work on the frontend against the hosted Base44 backend, run:
-
+### 4. Run Locally
 ```bash
 npm run dev
 ```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-Open the local URL printed by Vite.
+---
 
-## Use The Hosted Backend
+## 🗄️ Database Schema & Features
 
-For frontend-only development, create or update `.env.local` in the project root:
+- **Storefront**: High-speed browsing for toys with filtering by age, category, and search terms.
+- **Cart & Magic Box**: Client-side persisted cart with free shipping thresholds.
+- **Checkout & Orders**: Orders saved to Supabase with automated user assignment and status tracking.
+- **Admin Dashboard** (`/admin`):
+  - Manage inventory & product catalog (`/admin/products`)
+  - Create & organize categories (`/admin/categories`)
+  - Review orders & download PDF invoices (`/admin/orders`)
+  - Customize site copy, hero banners, and announcements (`/admin/settings`)
+- **Supabase Storage**: Direct image uploads to the `product-images` bucket.
+- **Supabase Auth**: Email/password and Google OAuth authentication with role-based access (`admin` vs `user`).
 
-```bash
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=https://your-app.db.app
-```
+---
 
-`VITE_BASE44_APP_ID` identifies the Base44 app.
+## 🛠️ Build & Verification
 
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
-
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-## Docs & Support
-
-Documentation: [https://docs.db.com/Integrations/Using-GitHub](https://docs.db.com/Integrations/Using-GitHub)
-
-Base44 CLI command reference: [https://docs.db.com/developers/references/cli/commands/introduction](https://docs.db.com/developers/references/cli/commands/introduction)
-
-Support: [https://app.db.com/support](https://app.db.com/support)
+- **Development:** `npm run dev`
+- **Production Build:** `npm run build`
+- **Lint Check:** `npm run lint`
+- **Type Check:** `npm run typecheck`

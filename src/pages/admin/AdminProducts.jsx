@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -10,7 +10,7 @@ import { Image } from '@/components/ui/image';
 
 export default function AdminProducts() {
   const qc = useQueryClient();
-  const { data: products } = useQuery({ queryKey: ['allProducts'], queryFn: () => db.entities.Product.list('-created_date', 500) });
+  const { data: products } = useQuery({ queryKey: ['allProducts'], queryFn: () => db.entities.Product.list('-created_at', 500) });
   const { data: categories } = useCategories();
   const [confirm, setConfirm] = useState(null);
   const catName = (id) => categories?.find(c => c.id === id)?.name || '—';

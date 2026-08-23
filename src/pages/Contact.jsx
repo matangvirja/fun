@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 
 import { Mail, MapPin, Clock, Send, MessageCircle, CheckCircle2 } from 'lucide-react';

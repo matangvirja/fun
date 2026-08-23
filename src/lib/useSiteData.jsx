@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
 
 export const useCategories = () => useQuery({
@@ -9,7 +9,7 @@ export const useCategories = () => useQuery({
 export const useProducts = (opts = {}) => useQuery({
   queryKey: ['products', opts],
   queryFn: async () => {
-    let list = await db.entities.Product.filter({ status: 'active' }, '-created_date', 200);
+    let list = await db.entities.Product.filter({ status: 'active' }, '-created_at', 200);
     if (opts.featured) list = list.filter(p => p.featured);
     if (opts.age != null) list = list.filter(p => p.age_min <= opts.age && p.age_max >= opts.age);
     if (opts.search) {
@@ -23,7 +23,7 @@ export const useProducts = (opts = {}) => useQuery({
 export const useProductBySlug = (slug) => useQuery({
   queryKey: ['product', slug],
   queryFn: async () => {
-    const list = await db.entities.Product.filter({ slug }, '-created_date', 1);
+    const list = await db.entities.Product.filter({ slug }, '-created_at', 1);
     return list[0];
   },
   enabled: !!slug,
@@ -32,7 +32,7 @@ export const useProductBySlug = (slug) => useQuery({
 export const useSiteSettings = () => useQuery({
   queryKey: ['siteSettings'],
   queryFn: async () => {
-    const list = await db.entities.SiteSettings.list('-created_date', 1);
+    const list = await db.entities.SiteSettings.list('-created_at', 1);
     return list[0] || null;
   },
 });

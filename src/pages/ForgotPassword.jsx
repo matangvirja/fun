@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/supabaseClient';
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -19,7 +19,7 @@ export default function ForgotPassword() {
     try {
       await db.auth.resetPasswordRequest(email);
     } catch {
-      // Always show success regardless
+      // Show success regardless for privacy
     } finally {
       setLoading(false);
       setSent(true);
