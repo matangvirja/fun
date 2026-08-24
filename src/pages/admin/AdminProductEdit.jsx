@@ -2,7 +2,7 @@ import { db } from '@/api/supabaseClient';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
+import { useToast } from '@/components/ui/use-toast';
 import { useCategories } from '@/lib/useSiteData';
 import { slugify } from '@/lib/format';
 import ImageUploader from '@/components/admin/ImageUploader';
@@ -33,6 +33,7 @@ export default function AdminProductEdit() {
   const isNew = id === 'new';
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data: categories } = useCategories();
   const { data: existing, isLoading } = useQuery({ 
     queryKey: ['product', id], 
@@ -55,27 +56,45 @@ export default function AdminProductEdit() {
   const save = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const generatedSlug = slugify(form.name);
     const payload = {
       ...form,
       price: Number(form.price) || 0,
       compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : null,
-      age_min: Number(form.age_min), 
-      age_max: Number(form.age_max),
-      stock: Number(form.stock), 
-      rating: Number(form.rating), 
-      review_count: Number(form.review_count),
-      slug: form.slug || slugify(form.name),
+      age_min: Number(form.age_min) || 0, 
+      age_max: Number(form.age_max) || 12,
+      stock: Number(form.stock) || 0, 
+      rating: Number(form.rating) || 5, 
+      review_count: Number(form.review_count) || 0,
+      slug: (form.slug && form.slug.trim()) ? slugify(form.slug) : generatedSlug,
       category_id: form.category_id || null,
       skills: skillsText.split(',').map(s => s.trim()).filter(Boolean),
     };
     try {
-      if (isNew) await db.entities.Product.create(payload);
-      else await db.entities.Product.update(id, payload);
+      if (isNew) {
+        await db.entities.Product.create(payload);
+        toast({
+          title: 'Product created!',
+          description: `"${payload.name}" is now live on the storefront.`,
+        });
+      } else {
+        await db.entities.Product.update(id, payload);
+        toast({
+          title: 'Product updated!',
+          description: `Changes to "${payload.name}" have been saved.`,
+        });
+      }
       qc.invalidateQueries({ queryKey: ['allProducts'] });
       qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['product'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
       navigate('/admin/products');
     } catch (err) { 
-      alert('Failed to save: ' + (err.message || '')); 
+      toast({
+        title: 'Failed to save product',
+        description: err.message || 'Error occurred.',
+        variant: 'destructive',
+      });
       setSaving(false); 
     }
   };

@@ -1,7 +1,7 @@
 import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
+import { useToast } from '@/components/ui/use-toast';
 import { formatPrice } from '@/lib/format';
 import { Eye, X, Download } from 'lucide-react';
 import { downloadInvoice } from '@/lib/invoice';
@@ -10,13 +10,27 @@ const STATUSES = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
 
 export default function AdminOrders() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data: orders } = useQuery({ queryKey: ['allOrders'], queryFn: () => db.entities.Order.list('-created_at', 500) });
   const [view, setView] = useState(null);
 
   const updateStatus = async (id, status) => {
-    await db.entities.Order.update(id, { status });
-    qc.invalidateQueries({ queryKey: ['allOrders'] });
-    setView(o => (o && o.id === id ? { ...o, status } : o));
+    try {
+      await db.entities.Order.update(id, { status });
+      qc.invalidateQueries({ queryKey: ['allOrders'] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      setView(o => (o && o.id === id ? { ...o, status } : o));
+      toast({
+        title: 'Order updated',
+        description: `Order #${id.slice(0, 8)} status set to ${status}.`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to update order',
+        description: err.message || 'Error occurred.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

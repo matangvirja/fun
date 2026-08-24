@@ -2,7 +2,7 @@ import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-
+import { useToast } from '@/components/ui/use-toast';
 import { useCategories } from '@/lib/useSiteData';
 import { formatPrice } from '@/lib/format';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -10,16 +10,30 @@ import { Image } from '@/components/ui/image';
 
 export default function AdminProducts() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data: products } = useQuery({ queryKey: ['allProducts'], queryFn: () => db.entities.Product.list('-created_at', 500) });
   const { data: categories } = useCategories();
   const [confirm, setConfirm] = useState(null);
   const catName = (id) => categories?.find(c => c.id === id)?.name || '—';
 
   const del = async (id) => {
-    await db.entities.Product.delete(id);
-    setConfirm(null);
-    qc.invalidateQueries({ queryKey: ['allProducts'] });
-    qc.invalidateQueries({ queryKey: ['products'] });
+    try {
+      await db.entities.Product.delete(id);
+      setConfirm(null);
+      qc.invalidateQueries({ queryKey: ['allProducts'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['product'] });
+      toast({
+        title: 'Product deleted',
+        description: 'The product was removed from the store.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to delete product',
+        description: err.message || 'Error occurred.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

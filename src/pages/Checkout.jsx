@@ -1,6 +1,7 @@
 import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCart } from '@/lib/cart';
 import { useSiteSettings } from '@/lib/useSiteData';
 import { useAuth } from '@/lib/AuthContext';
@@ -10,6 +11,7 @@ import { Image } from '@/components/ui/image';
 import { Lock } from 'lucide-react';
 
 export default function Checkout() {
+  const qc = useQueryClient();
   const { items, subtotal, clear } = useCart();
   const { data: settings } = useSiteSettings();
   const { user } = useAuth();
@@ -34,7 +36,7 @@ export default function Checkout() {
     try {
       const order = await db.entities.Order.create({
         created_by_id: user?.id || null,
-        items: items.map(i => ({ product_id: i.product_id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+        items: items.map(i => ({ product_id: i.product_id, name: i.name, price: i.price, quantity: i.quantity, image: i.image, slug: i.slug })),
         subtotal,
         shipping,
         total,
@@ -42,6 +44,8 @@ export default function Checkout() {
         status: 'pending',
       });
       clear();
+      qc.invalidateQueries({ queryKey: ['allOrders'] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
       try { await db.functions.invoke('syncOrderToSheet', { order }); } catch (e) { /* best effort */ }
       navigate(`/order/${order.id}`);
     } catch (err) {

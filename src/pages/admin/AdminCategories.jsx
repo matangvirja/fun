@@ -1,7 +1,7 @@
 import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
+import { useToast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/format';
 import { Trash2, Pencil } from 'lucide-react';
 import { Image } from '@/components/ui/image';
@@ -9,6 +9,7 @@ import ImageUploader from '@/components/admin/ImageUploader';
 
 export default function AdminCategories() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: () => db.entities.Category.list('order', 100) });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', slug: '', description: '', image: '', age_min: 0, age_max: 12, order: 0 });
@@ -17,16 +18,37 @@ export default function AdminCategories() {
 
   const save = async (e) => {
     e.preventDefault();
-    const payload = { ...form, slug: form.slug || slugify(form.name), age_min: Number(form.age_min), age_max: Number(form.age_max), order: Number(form.order) };
-    if (editing) await db.entities.Category.update(editing, payload);
-    else await db.entities.Category.create(payload);
-    reset();
-    qc.invalidateQueries({ queryKey: ['categories'] });
+    try {
+      const payload = { ...form, slug: (form.slug && form.slug.trim()) ? slugify(form.slug) : slugify(form.name), age_min: Number(form.age_min) || 0, age_max: Number(form.age_max) || 12, order: Number(form.order) || 0 };
+      if (editing) {
+        await db.entities.Category.update(editing, payload);
+        toast({ title: 'Category updated', description: `"${payload.name}" updated successfully.` });
+      } else {
+        await db.entities.Category.create(payload);
+        toast({ title: 'Category created', description: `"${payload.name}" added to the store.` });
+      }
+      reset();
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['allProducts'] });
+    } catch (err) {
+      toast({ title: 'Failed to save category', description: err.message || 'Error occurred.', variant: 'destructive' });
+    }
   };
 
   const edit = (c) => { setEditing(c.id); setForm({ name: c.name, slug: c.slug, description: c.description || '', image: c.image || '', age_min: c.age_min || 0, age_max: c.age_max || 12, order: c.order || 0 }); };
 
-  const del = async (id) => { await db.entities.Category.delete(id); qc.invalidateQueries({ queryKey: ['categories'] }); };
+  const del = async (id) => { 
+    try {
+      await db.entities.Category.delete(id); 
+      qc.invalidateQueries({ queryKey: ['categories'] }); 
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['allProducts'] });
+      toast({ title: 'Category deleted', description: 'Category removed successfully.' });
+    } catch (err) {
+      toast({ title: 'Failed to delete category', description: err.message || 'Error occurred.', variant: 'destructive' });
+    }
+  };
 
   return (
     <div>

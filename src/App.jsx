@@ -5,6 +5,7 @@ import { queryClientInstance } from '@/lib/query-client';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { useRealtimeSync } from '@/lib/useSiteData';
 import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from '@/lib/cart';
 import AdminRoute from '@/components/AdminRoute';
@@ -30,6 +31,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 
 const AuthenticatedApp = () => {
+  useRealtimeSync();
   const { isLoadingAuth } = useAuth();
 
   if (isLoadingAuth) {

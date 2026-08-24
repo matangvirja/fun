@@ -183,11 +183,68 @@ const parseSort = (orderBy = '-created_at') => {
 };
 
 // Generic table adapter
+// Helpers for Local Storage fallback database
+const STORAGE_PREFIX = 'funfable_store_';
+
+export const getStoredTableData = (tableName, defaultFallback = []) => {
+  if (typeof window === 'undefined') return [...defaultFallback];
+  try {
+    const raw = localStorage.getItem(`${STORAGE_PREFIX}${tableName}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn(`[FunFable Storage] Error reading ${tableName}:`, e);
+  }
+  // Initialize in storage
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${tableName}`, JSON.stringify(defaultFallback));
+  } catch {}
+  return [...defaultFallback];
+};
+
+export const setStoredTableData = (tableName, data) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${tableName}`, JSON.stringify(data));
+    // Emit window event for instant cross-component and cross-tab reactivity
+    window.dispatchEvent(new CustomEvent('funfable_db_change', {
+      detail: { tableName, timestamp: Date.now() }
+    }));
+  } catch (e) {
+    console.warn(`[FunFable Storage] Error saving ${tableName}:`, e);
+  }
+};
+
+// Sort helper for fallback data
+const sortFallbackList = (list, orderBy = '-created_at') => {
+  const { column, ascending } = parseSort(orderBy);
+  return [...list].sort((a, b) => {
+    let valA = a[column];
+    let valB = b[column];
+
+    if (valA === undefined || valA === null) valA = '';
+    if (valB === undefined || valB === null) valB = '';
+
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      return ascending ? valA - valB : valB - valA;
+    }
+    
+    const strA = String(valA);
+    const strB = String(valB);
+    const cmp = strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' });
+    return ascending ? cmp : -cmp;
+  });
+};
+
+// Generic table adapter
 const createEntityAdapter = (tableName, fallbackData = []) => {
   return {
     async list(orderBy = '-created_at', limit = 100) {
       if (!isSupabaseConfigured) {
-        return fallbackData;
+        const data = getStoredTableData(tableName, fallbackData);
+        return sortFallbackList(data, orderBy).slice(0, limit);
       }
       try {
         const { column, ascending } = parseSort(orderBy);
@@ -199,22 +256,26 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
 
         if (error) {
           console.warn(`[Supabase] Error listing ${tableName}:`, error.message);
-          return fallbackData;
+          const localData = getStoredTableData(tableName, fallbackData);
+          return sortFallbackList(localData, orderBy).slice(0, limit);
         }
         return data || [];
       } catch (e) {
         console.warn(`[Supabase] Fallback on ${tableName} list:`, e);
-        return fallbackData;
+        const localData = getStoredTableData(tableName, fallbackData);
+        return sortFallbackList(localData, orderBy).slice(0, limit);
       }
     },
 
     async filter(where = {}, orderBy = '-created_at', limit = 100) {
       if (!isSupabaseConfigured) {
-        let res = [...fallbackData];
+        let list = getStoredTableData(tableName, fallbackData);
         Object.entries(where).forEach(([k, v]) => {
-          res = res.filter(item => item[k] === v);
+          if (v !== undefined && v !== null) {
+            list = list.filter(item => item[k] === v);
+          }
         });
-        return res;
+        return sortFallbackList(list, orderBy).slice(0, limit);
       }
       try {
         const { column, ascending } = parseSort(orderBy);
@@ -229,9 +290,13 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
         const { data, error } = await query.order(column, { ascending }).limit(limit);
         if (error) {
           console.warn(`[Supabase] Error filtering ${tableName}:`, error.message);
-          return fallbackData.filter(item => {
-            return Object.entries(where).every(([k, v]) => item[k] === v);
+          let list = getStoredTableData(tableName, fallbackData);
+          Object.entries(where).forEach(([k, v]) => {
+            if (v !== undefined && v !== null) {
+              list = list.filter(item => item[k] === v);
+            }
           });
+          return sortFallbackList(list, orderBy).slice(0, limit);
         }
         return data || [];
       } catch (e) {
@@ -242,21 +307,36 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
 
     async get(id) {
       if (!isSupabaseConfigured) {
-        return fallbackData.find(item => item.id === id) || null;
+        const list = getStoredTableData(tableName, fallbackData);
+        return list.find(item => item.id === id || item.slug === id) || null;
       }
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) throw new Error(error.message);
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (error) {
+          const list = getStoredTableData(tableName, fallbackData);
+          return list.find(item => item.id === id || item.slug === id) || null;
+        }
+        return data;
+      } catch {
+        const list = getStoredTableData(tableName, fallbackData);
+        return list.find(item => item.id === id || item.slug === id) || null;
+      }
     },
 
     async create(payload) {
       if (!isSupabaseConfigured) {
-        const newItem = { id: 'temp-' + Date.now(), ...payload, created_at: new Date().toISOString() };
-        fallbackData.push(newItem);
+        const list = getStoredTableData(tableName, fallbackData);
+        const newItem = {
+          id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          ...payload,
+          created_at: payload.created_at || new Date().toISOString()
+        };
+        const nextList = [newItem, ...list];
+        setStoredTableData(tableName, nextList);
         return newItem;
       }
       const { data, error } = await supabase
@@ -270,12 +350,22 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
 
     async update(id, payload) {
       if (!isSupabaseConfigured) {
-        const index = fallbackData.findIndex(item => item.id === id);
-        if (index !== -1) {
-          fallbackData[index] = { ...fallbackData[index], ...payload };
-          return fallbackData[index];
+        const list = getStoredTableData(tableName, fallbackData);
+        if (tableName === 'site_settings' && list.length > 0) {
+          const updated = { ...list[0], ...payload, id: id || list[0].id, updated_at: new Date().toISOString() };
+          setStoredTableData(tableName, [updated]);
+          return updated;
         }
-        return { id, ...payload };
+
+        const index = list.findIndex(item => item.id === id);
+        if (index !== -1) {
+          list[index] = { ...list[index], ...payload, updated_at: new Date().toISOString() };
+          setStoredTableData(tableName, list);
+          return list[index];
+        }
+        const fallbackCreated = { id, ...payload, created_at: new Date().toISOString() };
+        setStoredTableData(tableName, [fallbackCreated, ...list]);
+        return fallbackCreated;
       }
       const { data, error } = await supabase
         .from(tableName)
@@ -289,8 +379,9 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
 
     async delete(id) {
       if (!isSupabaseConfigured) {
-        const idx = fallbackData.findIndex(item => item.id === id);
-        if (idx !== -1) fallbackData.splice(idx, 1);
+        const list = getStoredTableData(tableName, fallbackData);
+        const nextList = list.filter(item => item.id !== id);
+        setStoredTableData(tableName, nextList);
         return { success: true };
       }
       const { error } = await supabase
@@ -301,6 +392,15 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
       return { success: true };
     }
   };
+};
+
+export const resetLocalDemoData = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(`${STORAGE_PREFIX}categories`, JSON.stringify(FALLBACK_CATEGORIES));
+  localStorage.setItem(`${STORAGE_PREFIX}products`, JSON.stringify(FALLBACK_PRODUCTS));
+  localStorage.setItem(`${STORAGE_PREFIX}site_settings`, JSON.stringify([FALLBACK_SITE_SETTINGS]));
+  localStorage.setItem(`${STORAGE_PREFIX}orders`, JSON.stringify([]));
+  window.dispatchEvent(new CustomEvent('funfable_db_change', { detail: { action: 'reset', timestamp: Date.now() } }));
 };
 
 export const entities = {
@@ -431,12 +531,21 @@ export const auth = {
   }
 };
 
-// Storage & Integrations Adapter
+// Storage & Integrations Adapter with Persistent DataURL conversion
 export const integrations = {
   Core: {
     async UploadFile({ file }) {
       if (!isSupabaseConfigured) {
-        return { file_url: URL.createObjectURL(file) };
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({ file_url: reader.result });
+          };
+          reader.onerror = () => {
+            resolve({ file_url: URL.createObjectURL(file) });
+          };
+          reader.readAsDataURL(file);
+        });
       }
       try {
         const fileExt = file.name.split('.').pop();
@@ -452,7 +561,12 @@ export const integrations = {
 
         if (uploadError) {
           console.warn('[Supabase Storage upload error]:', uploadError.message);
-          return { file_url: URL.createObjectURL(file) };
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve({ file_url: reader.result });
+            reader.onerror = () => resolve({ file_url: URL.createObjectURL(file) });
+            reader.readAsDataURL(file);
+          });
         }
 
         const { data } = supabase.storage
@@ -462,7 +576,12 @@ export const integrations = {
         return { file_url: data.publicUrl };
       } catch (e) {
         console.warn('[Supabase Storage upload fallback]:', e);
-        return { file_url: URL.createObjectURL(file) };
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve({ file_url: reader.result });
+          reader.onerror = () => resolve({ file_url: URL.createObjectURL(file) });
+          reader.readAsDataURL(file);
+        });
       }
     }
   }
@@ -500,6 +619,7 @@ export const db = {
   auth,
   integrations,
   functions,
+  resetLocalDemoData,
 };
 
 export default db;
