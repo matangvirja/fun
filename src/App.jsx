@@ -9,6 +9,7 @@ import { useRealtimeSync } from '@/lib/useSiteData';
 import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from '@/lib/cart';
 import AdminRoute from '@/components/AdminRoute';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import StoreLayout from '@/components/store/StoreLayout';
 import Home from '@/pages/Home';
 import Shop from '@/pages/Shop';
@@ -78,16 +79,20 @@ const AuthenticatedApp = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <CartProvider>
-            <AuthenticatedApp />
-          </CartProvider>
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <ScrollToTop />
+            <CartProvider>
+              <ErrorBoundary>
+                <AuthenticatedApp />
+              </ErrorBoundary>
+            </CartProvider>
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

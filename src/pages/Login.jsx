@@ -10,6 +10,7 @@ import { LogIn, Mail, Lock, Loader2, Sparkles } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import PageTitle from '@/components/PageTitle';
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -54,6 +55,7 @@ export default function Login() {
         </>
       }
     >
+      <PageTitle title="Log In" />
       {/* 1-Click Demo Admin Button */}
       <Button
         variant="secondary"

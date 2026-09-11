@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSiteSettings } from '@/lib/useSiteData';
 import { Image } from '@/components/ui/image';
 import { Heart, Sparkles, Shield, Leaf, ArrowRight } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 const VALUES = [
   { icon: Heart, title: 'Play with Purpose', body: 'Every toy in our collection is chosen for its ability to nurture, not just entertain. We look for toys that spark curiosity, build confidence, and grow with your child.' },
@@ -16,6 +17,7 @@ export default function About() {
 
   return (
     <div>
+      <PageTitle title="Our Story" />
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-5 sm:px-8 pt-16 pb-12">
         <div className="max-w-3xl">

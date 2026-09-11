@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { formatPrice } from '@/lib/format';
 import { Image } from '@/components/ui/image';
 import { Lock } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 export default function Checkout() {
   const qc = useQueryClient();
@@ -25,6 +26,7 @@ export default function Checkout() {
     country: 'India'
   });
   const [loading, setLoading] = useState(false);
+  const [orderError, setOrderError] = useState(null);
 
   const threshold = settings?.free_shipping_threshold || 1500;
   const shipping = subtotal >= threshold || subtotal === 0 ? 0 : 99;
@@ -33,6 +35,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setOrderError(null);
     try {
       const order = await db.entities.Order.create({
         created_by_id: user?.id || null,
@@ -50,7 +53,7 @@ export default function Checkout() {
       navigate(`/order/${order.id}`);
     } catch (err) {
       console.error('Order error:', err);
-      alert('Something went wrong placing your order. Please try again.');
+      setOrderError(err.message || 'Something went wrong placing your order. Please try again.');
       setLoading(false);
     }
   };
@@ -66,6 +69,7 @@ export default function Checkout() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 grid lg:grid-cols-2 gap-12">
+      <PageTitle title="Checkout" />
       <form onSubmit={submit} className="space-y-6">
         <h1 className="font-display text-4xl font-medium text-forest">Checkout</h1>
         <div className="grid grid-cols-2 gap-4">
@@ -75,6 +79,11 @@ export default function Checkout() {
           <Field label="City" value={form.city} onChange={v => setForm({ ...form, city: v })} required />
           <Field label="ZIP" value={form.zip} onChange={v => setForm({ ...form, zip: v })} required />
         </div>
+        {orderError && (
+          <div className="p-4 squircle-sm bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            {orderError}
+          </div>
+        )}
         <button disabled={loading} className="w-full bg-forest text-paper squircle h-14 font-medium hover:bg-forest/90 disabled:opacity-50 flex items-center justify-center gap-2">
           <Lock className="w-4 h-4" /> {loading ? 'Placing order…' : `Place order — ${formatPrice(total)}`}
         </button>

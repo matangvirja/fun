@@ -67,6 +67,9 @@ export default function Navbar() {
                 <button 
                   onClick={() => setUserMenuOpen(!userMenuOpen)} 
                   title={user?.email || 'Account'} 
+                  aria-label={`Account menu for ${user?.email || 'account'}`}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
                   className="w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border hover:bg-secondary transition"
                 >
                   {role === 'admin' ? <Shield className="w-5 h-5 text-forest" /> : <User className="w-5 h-5 text-forest" />}
@@ -75,6 +78,7 @@ export default function Navbar() {
                 <Link 
                   to="/login" 
                   title="Log in" 
+                  aria-label="Log in to your account"
                   className="w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border hover:bg-secondary transition"
                 >
                   <User className="w-5 h-5 text-forest" />
@@ -106,11 +110,11 @@ export default function Navbar() {
               )}
             </div>
 
-            <button onClick={openCart} className="relative w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border hover:bg-secondary transition">
+            <button onClick={openCart} aria-label={`Open cart${count > 0 ? `, ${count} item${count !== 1 ? 's' : ''}` : ''}`} className="relative w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border hover:bg-secondary transition">
               <ShoppingBag className="w-5 h-5 text-forest" />
-              {count > 0 && <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{count}</span>}
+              {count > 0 && <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center" aria-hidden="true">{count}</span>}
             </button>
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border">
+            <button onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={mobileOpen} className="lg:hidden w-10 h-10 flex items-center justify-center squircle-sm bg-card border border-border">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>

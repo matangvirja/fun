@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useProducts, useCategories } from '@/lib/useSiteData';
 import ProductCard from '@/components/store/ProductCard';
 import AgeSlider from '@/components/store/AgeSlider';
+import PageTitle from '@/components/PageTitle';
 
 export default function Shop() {
   const [params, setParams] = useSearchParams();
@@ -32,6 +33,7 @@ export default function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
+      <PageTitle title="Shop All Toys" />
       <div className="mb-8">
         <p className="text-xs uppercase tracking-widest text-sage font-semibold mb-2">Discovery Archive</p>
         <h1 className="font-display text-4xl sm:text-6xl font-medium text-forest">

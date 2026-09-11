@@ -6,6 +6,7 @@ import { useCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/format';
 import ProductCard from '@/components/store/ProductCard';
 import { Plus, Minus, Check, ArrowLeft, Star, Brain, Hand, Heart, Sparkles } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 const SKILL_ICONS = { 'Fine Motor Skills': Hand, 'Logic': Brain, 'Creativity': Sparkles, 'Empathy': Heart, 'Problem Solving': Brain, 'Social Skills': Heart, 'Gross Motor Skills': Hand, 'Balance': Hand, 'Color Recognition': Sparkles, 'Comfort': Heart, 'Self Expression': Sparkles };
 
@@ -26,6 +27,7 @@ export default function ProductDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8">
+      <PageTitle title={product.name} />
       <Link to="/shop" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-forest mb-6"><ArrowLeft className="w-4 h-4" /> Back to shop</Link>
       <div className="grid lg:grid-cols-2 gap-12">
         <div className="lg:sticky lg:top-24 lg:self-start">

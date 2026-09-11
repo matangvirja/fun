@@ -4,6 +4,7 @@ import { Image } from '@/components/ui/image';
 import { useSiteSettings, useProducts, useCategories } from '@/lib/useSiteData';
 import ProductCard from '@/components/store/ProductCard';
 import { ArrowRight, Sparkles, ShieldCheck, Leaf, Truck } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 export default function Home() {
   const { data: settings } = useSiteSettings();
@@ -24,6 +25,7 @@ export default function Home() {
 
   return (
     <div>
+      <PageTitle />
       <section className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-12 sm:pt-20 pb-16 grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-6 z-10">

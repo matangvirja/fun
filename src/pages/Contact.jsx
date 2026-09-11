@@ -2,6 +2,7 @@ import { db } from '@/api/supabaseClient';
 import React, { useState } from 'react';
 
 import { Mail, MapPin, Clock, Send, MessageCircle, CheckCircle2 } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 const CONTACT_INFO = [
   { icon: Mail, label: 'Email us', value: 'hello@funfable.store', href: 'mailto:hello@funfable.store' },
@@ -31,6 +32,7 @@ export default function Contact() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-16">
+      <PageTitle title="Contact Us" />
       {/* Header */}
       <div className="text-center mb-16 max-w-2xl mx-auto">
         <span className="inline-block bg-sage-soft text-forest text-xs font-semibold tracking-wider uppercase px-4 py-1.5 squircle-sm mb-6">Get in Touch</span>

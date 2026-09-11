@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Truck, RotateCcw, Package, Mail, ChevronDown } from 'lucide-react';
+import { Truck, RotateCcw, Package, Mail } from 'lucide-react';
+import PageTitle from '@/components/PageTitle';
 
 const FAQ_SECTIONS = [
   {
@@ -53,6 +54,7 @@ const FAQ_SECTIONS = [
 export default function FAQ() {
   return (
     <div className="max-w-4xl mx-auto px-5 sm:px-8 py-16">
+      <PageTitle title="FAQ — Help Centre" />
       {/* Header */}
       <div className="text-center mb-16">
         <span className="inline-block bg-sage-soft text-forest text-xs font-semibold tracking-wider uppercase px-4 py-1.5 squircle-sm mb-6">Help Centre</span>

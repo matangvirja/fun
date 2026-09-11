@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import ImageUploader from '@/components/admin/ImageUploader';
-import { Save, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Save, RotateCcw } from 'lucide-react';
 
 export default function AdminSettings() {
   const qc = useQueryClient();
