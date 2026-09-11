@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, FolderTree, ShoppingCart, Settings, LogOut, Store, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, ShoppingCart, Settings, LogOut, Store } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { isSupabaseConfigured } from '@/api/supabaseClient';
+
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -12,16 +12,10 @@ const NAV = [
   { to: '/admin/settings', label: 'Site Settings', icon: Settings },
 ];
 
-// Check if user is on the demo admin mode (localStorage-based, no real Supabase)
-const isDemoMode = () =>
-  typeof window !== 'undefined' &&
-  localStorage.getItem('funfable_demo_admin') === 'true' &&
-  !isSupabaseConfigured;
 
 export default function AdminLayout() {
   const { logout } = useAuth();
   const location = useLocation();
-  const showDemoBanner = isDemoMode();
 
   return (
     <div className="min-h-screen bg-paper flex">
@@ -46,24 +40,6 @@ export default function AdminLayout() {
         </div>
       </aside>
       <main className="flex-1 ml-64">
-        {/* Demo mode warning banner — shown when Supabase is not configured */}
-        {showDemoBanner && (
-          <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
-            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-800">
-              <span className="font-semibold">Demo mode active</span> — changes are stored in browser localStorage only.{' '}
-              <a
-                href="https://github.com/matangvirja/fun#-getting-started"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-amber-900"
-              >
-                Configure Supabase
-              </a>{' '}
-              to persist data and enable real authentication.
-            </div>
-          </div>
-        )}
         <div className="p-8">
           <Outlet />
         </div>
