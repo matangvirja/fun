@@ -27,7 +27,12 @@ export default function Login() {
       await db.auth.loginViaEmailPassword(email, password);
       window.location.href = returnTo;
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      const msg = err.message || "";
+      if (msg.toLowerCase().includes('email not confirmed')) {
+        setError("Email not confirmed yet. Check your inbox for the confirmation link, or disable 'Confirm email' in Supabase Dashboard → Authentication → Providers → Email.");
+      } else {
+        setError(msg || "Invalid email or password");
+      }
     } finally {
       setLoading(false);
     }

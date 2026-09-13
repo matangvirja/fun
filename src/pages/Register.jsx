@@ -38,7 +38,16 @@ export default function Register() {
         setRegisteredSuccess(true);
       }
     } catch (err) {
-      setError(err.message || "Registration failed");
+      const msg = err.message || "";
+      if (msg.toLowerCase().includes('rate limit') || err.code === 'over_email_send_rate_limit') {
+        setError("Supabase email limit reached (3 emails/hr). To fix this, turn OFF 'Confirm email' in Supabase Dashboard → Authentication → Providers → Email.");
+      } else if (msg.toLowerCase().includes('recursion') || err.code === '42P17') {
+        setError("Database policy issue: please run the SQL fix script in your Supabase SQL Editor.");
+      } else if (msg.toLowerCase().includes('invalid')) {
+        setError("Invalid email address. Please use a real email address (e.g. yourname@gmail.com).");
+      } else {
+        setError(msg || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
