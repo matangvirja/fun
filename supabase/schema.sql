@@ -28,13 +28,23 @@ CREATE POLICY "Allow users to update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
+-- Helper function to check if current user is admin without triggering RLS recursion
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 CREATE POLICY "Allow admins full access to profiles"
   ON public.profiles FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- Trigger to automatically create a profile row when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -80,11 +90,7 @@ CREATE POLICY "Allow public read access to categories"
 
 CREATE POLICY "Allow admin full access to categories"
   ON public.categories FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
 -- 3. PRODUCTS TABLE
@@ -119,11 +125,7 @@ CREATE POLICY "Allow public read access to active products"
 
 CREATE POLICY "Allow admin full access to products"
   ON public.products FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
 -- 4. ORDERS TABLE
@@ -156,16 +158,12 @@ CREATE POLICY "Allow users to read their own orders or public confirmation"
   USING (
     created_by_id IS NULL 
     OR auth.uid() = created_by_id
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR public.is_admin()
   );
 
 CREATE POLICY "Allow admin full access to orders"
   ON public.orders FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
 -- 5. SITE SETTINGS TABLE
@@ -197,11 +195,7 @@ CREATE POLICY "Allow public read access to site_settings"
 
 CREATE POLICY "Allow admin full access to site_settings"
   ON public.site_settings FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
 -- 6. CONTACT INQUIRIES TABLE
@@ -223,11 +217,7 @@ CREATE POLICY "Allow public insert to contact_inquiries"
 
 CREATE POLICY "Allow admin full access to contact_inquiries"
   ON public.contact_inquiries FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- ------------------------------------------------------------------------------
 -- 7. STORAGE BUCKET FOR PRODUCT IMAGES
