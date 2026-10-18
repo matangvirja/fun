@@ -27,13 +27,14 @@ export const supabaseReadyPromise = (async () => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+    // Any HTTP response (even 401) means Supabase is reachable.
+    // Only network-level failures (timeout, DNS, etc.) should trigger demo mode.
+    await fetch(`${supabaseUrl}/rest/v1/`, {
       method: 'HEAD',
       headers: { apikey: supabaseAnonKey },
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     _connectivityChecked = true;
     return true; // Supabase is reachable
   } catch (e) {
