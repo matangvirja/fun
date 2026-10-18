@@ -508,9 +508,8 @@ export const auth = {
   async register({ email, password }) {
     await supabaseReadyPromise;
     if (!isSupabaseConfigured) {
-      if (typeof window !== 'undefined') localStorage.setItem('funfable_demo_admin', 'true');
       return {
-        user: { id: 'demo-user-id', email, role: 'admin' },
+        user: { id: 'demo-user-id', email, role: 'user' },
         session: { access_token: 'demo-token' }
       };
     }
