@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { supabase, isSupabaseConfigured, auth } from '@/api/supabaseClient';
+import { supabase, isSupabaseConfigured, auth, supabaseReadyPromise } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -41,9 +41,22 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
 
+      await supabaseReadyPromise;
+
       if (!isSupabaseConfigured) {
-        setUser(null);
-        setIsAuthenticated(false);
+        // Check for demo admin in local storage
+        if (typeof window !== 'undefined' && localStorage.getItem('funfable_demo_admin') === 'true') {
+          setUser({
+            id: 'demo-admin-id',
+            email: 'admin@funfable.store',
+            role: 'admin',
+            user_metadata: { full_name: 'Store Administrator' }
+          });
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
         setIsLoadingAuth(false);
         setAuthChecked(true);
         return;
@@ -69,26 +82,36 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    checkUserAuth();
+    let subscription;
+    let cancelled = false;
 
-    if (isSupabaseConfigured) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
-          const userWithRole = await fetchProfile(session.user);
-          setUser(userWithRole);
-          setIsAuthenticated(true);
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-        setIsLoadingAuth(false);
-        setAuthChecked(true);
-      });
+    const init = async () => {
+      await checkUserAuth();
+      // Only subscribe to Supabase auth events if it's actually reachable
+      await supabaseReadyPromise;
+      if (!cancelled && isSupabaseConfigured) {
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            const userWithRole = await fetchProfile(session.user);
+            setUser(userWithRole);
+            setIsAuthenticated(true);
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+          setIsLoadingAuth(false);
+          setAuthChecked(true);
+        });
+        subscription = data?.subscription;
+      }
+    };
 
-      return () => {
-        subscription?.unsubscribe();
-      };
-    }
+    init();
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
   }, [checkUserAuth]);
 
   const logout = async (redirectUrl = '/') => {

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { db, supabase, isSupabaseConfigured } from '@/api/supabaseClient';
+import { db, supabase, isSupabaseConfigured, supabaseReadyPromise } from '@/api/supabaseClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useCategories = () => useQuery({
@@ -94,18 +94,22 @@ export const useRealtimeSync = () => {
     };
     window.addEventListener('storage', handleStorage);
 
-    // 3. Supabase Realtime channel subscription (if Supabase is configured)
+    // 3. Supabase Realtime channel subscription (if Supabase is configured and reachable)
     let channel;
-    if (isSupabaseConfigured) {
-      channel = supabase
-        .channel('funfable_realtime_sync')
-        .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-          invalidate(payload.table);
-        })
-        .subscribe();
-    }
+    let cancelled = false;
+    supabaseReadyPromise.then(() => {
+      if (!cancelled && isSupabaseConfigured) {
+        channel = supabase
+          .channel('funfable_realtime_sync')
+          .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+            invalidate(payload.table);
+          })
+          .subscribe();
+      }
+    });
 
     return () => {
+      cancelled = true;
       window.removeEventListener('funfable_db_change', handleLocalDbChange);
       window.removeEventListener('storage', handleStorage);
       if (channel) {

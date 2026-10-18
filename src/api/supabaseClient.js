@@ -4,12 +4,45 @@ const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
-export const isSupabaseConfigured = Boolean(
+const _configLooksValid = Boolean(
   supabaseUrl && 
   supabaseAnonKey && 
   !supabaseUrl.includes('your-project-ref') &&
   !supabaseAnonKey.includes('your-anon-key')
 );
+
+// Mutable flag — starts with the static check and can be disabled at runtime
+// if the Supabase project turns out to be unreachable.
+export let isSupabaseConfigured = _configLooksValid;
+
+// Runtime connectivity probe — fires once at startup.
+// If the Supabase REST endpoint is unreachable we flip the flag so every
+// subsequent call uses the local-storage fallback instead of hanging.
+let _connectivityChecked = false;
+export const supabaseReadyPromise = (async () => {
+  if (!_configLooksValid) {
+    _connectivityChecked = true;
+    return false;
+  }
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: 'HEAD',
+      headers: { apikey: supabaseAnonKey },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    _connectivityChecked = true;
+    return true; // Supabase is reachable
+  } catch (e) {
+    console.warn('[FunFable] Supabase is unreachable — running in offline demo mode.', e.message || e);
+    isSupabaseConfigured = false;
+    _connectivityChecked = true;
+    return false;
+  }
+})();
 
 // Fallback initial data in case Supabase is not connected yet
 const FALLBACK_CATEGORIES = [
@@ -243,6 +276,7 @@ const sortFallbackList = (list, orderBy = '-created_at') => {
 const createEntityAdapter = (tableName, fallbackData = []) => {
   return {
     async list(orderBy = '-created_at', limit = 100) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         const data = getStoredTableData(tableName, fallbackData);
         return sortFallbackList(data, orderBy).slice(0, limit);
@@ -269,6 +303,7 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
     },
 
     async filter(where = {}, orderBy = '-created_at', limit = 100) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         let list = getStoredTableData(tableName, fallbackData);
         Object.entries(where).forEach(([k, v]) => {
@@ -307,6 +342,7 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
     },
 
     async get(id) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         const list = getStoredTableData(tableName, fallbackData);
         return list.find(item => item.id === id || item.slug === id) || null;
@@ -329,6 +365,7 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
     },
 
     async create(payload) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         const list = getStoredTableData(tableName, fallbackData);
         const newItem = {
@@ -350,6 +387,7 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
     },
 
     async update(id, payload) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         const list = getStoredTableData(tableName, fallbackData);
         if (tableName === 'site_settings' && list.length > 0) {
@@ -379,6 +417,7 @@ const createEntityAdapter = (tableName, fallbackData = []) => {
     },
 
     async delete(id) {
+      await supabaseReadyPromise;
       if (!isSupabaseConfigured) {
         const list = getStoredTableData(tableName, fallbackData);
         const nextList = list.filter(item => item.id !== id);
@@ -424,6 +463,8 @@ export const auth = {
     }
 
     if (!isSupabaseConfigured) return null;
+    await supabaseReadyPromise;
+    if (!isSupabaseConfigured) return null;
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
 
@@ -447,6 +488,7 @@ export const auth = {
   },
 
   async loginViaEmailPassword(email, password) {
+    await supabaseReadyPromise;
     if (!isSupabaseConfigured) {
       // Allow demo admin login out of the box
       if (email.toLowerCase().includes('admin') || password === 'admin') {
@@ -464,6 +506,7 @@ export const auth = {
   },
 
   async register({ email, password }) {
+    await supabaseReadyPromise;
     if (!isSupabaseConfigured) {
       if (typeof window !== 'undefined') localStorage.setItem('funfable_demo_admin', 'true');
       return {
@@ -483,6 +526,7 @@ export const auth = {
   },
 
   async loginWithProvider(provider = 'google', returnTo = '/') {
+    await supabaseReadyPromise;
     if (!isSupabaseConfigured) {
       if (typeof window !== 'undefined') localStorage.setItem('funfable_demo_admin', 'true');
       window.location.href = returnTo || '/admin';
@@ -500,6 +544,7 @@ export const auth = {
   },
 
   async resetPasswordRequest(email) {
+    await supabaseReadyPromise;
     if (!isSupabaseConfigured) return;
     const redirectTo = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
@@ -507,6 +552,7 @@ export const auth = {
   },
 
   async resetPassword({ newPassword }) {
+    await supabaseReadyPromise;
     if (!isSupabaseConfigured) {
       return { success: true };
     }
