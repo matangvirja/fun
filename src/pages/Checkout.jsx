@@ -8,8 +8,10 @@ import { useAuth } from '@/lib/AuthContext';
 
 import { formatPrice } from '@/lib/format';
 import { Image } from '@/components/ui/image';
-import { Lock } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import PageTitle from '@/components/PageTitle';
+
+const WHATSAPP_NUMBER = '918347826045';
 
 export default function Checkout() {
   const qc = useQueryClient();
@@ -20,6 +22,7 @@ export default function Checkout() {
   const [form, setForm] = useState({
     customer_name: user?.user_metadata?.full_name || '',
     customer_email: user?.email || '',
+    customer_phone: '',
     address: '',
     city: '',
     zip: '',
@@ -31,6 +34,33 @@ export default function Checkout() {
   const threshold = settings?.free_shipping_threshold || 1500;
   const shipping = subtotal >= threshold || subtotal === 0 ? 0 : 99;
   const total = subtotal + shipping;
+
+  /** Build WhatsApp pre-filled message with all order details */
+  const buildWhatsAppMessage = (orderId) => {
+    const lines = [];
+    lines.push('🛒 *New Order from FunFable*');
+    if (orderId) lines.push(`Order ID: #${orderId.slice(0, 8)}`);
+    lines.push('');
+    lines.push('*Customer Details:*');
+    lines.push(`Name: ${form.customer_name}`);
+    lines.push(`Phone: ${form.customer_phone}`);
+    lines.push(`Email: ${form.customer_email}`);
+    lines.push(`Address: ${form.address}, ${form.city} - ${form.zip}`);
+    lines.push('');
+    lines.push('*Order Items:*');
+    items.forEach((item, idx) => {
+      lines.push(`${idx + 1}. ${item.name} × ${item.quantity} = ${formatPrice(item.price * item.quantity)}`);
+    });
+    lines.push('');
+    lines.push('───────────────');
+    lines.push(`Subtotal: ${formatPrice(subtotal)}`);
+    lines.push(`Shipping: ${shipping === 0 ? 'Free' : formatPrice(shipping)}`);
+    lines.push(`*Total: ${formatPrice(total)}*`);
+    lines.push('───────────────');
+    lines.push('');
+    lines.push('Please confirm my order. Thank you! 🙏');
+    return lines.join('\n');
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -46,6 +76,12 @@ export default function Checkout() {
         ...form,
         status: 'pending',
       });
+
+      // Open WhatsApp with order details
+      const message = buildWhatsAppMessage(order.id);
+      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+
       clear();
       qc.invalidateQueries({ queryKey: ['allOrders'] });
       qc.invalidateQueries({ queryKey: ['orders'] });
@@ -72,20 +108,22 @@ export default function Checkout() {
       <PageTitle title="Checkout" />
       <form onSubmit={submit} className="space-y-6">
         <h1 className="font-display text-4xl font-medium text-forest">Checkout</h1>
+        <p className="text-muted-foreground text-sm">Fill in your details — your order will be saved and sent to us via WhatsApp!</p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Full name" value={form.customer_name} onChange={v => setForm({ ...form, customer_name: v })} required className="col-span-2" />
-          <Field label="Email" type="email" value={form.customer_email} onChange={v => setForm({ ...form, customer_email: v })} required className="col-span-2" />
+          <Field label="Email" type="email" value={form.customer_email} onChange={v => setForm({ ...form, customer_email: v })} required />
+          <Field label="Phone number" type="tel" value={form.customer_phone} onChange={v => setForm({ ...form, customer_phone: v })} required />
           <Field label="Address" value={form.address} onChange={v => setForm({ ...form, address: v })} required className="col-span-2" />
           <Field label="City" value={form.city} onChange={v => setForm({ ...form, city: v })} required />
-          <Field label="ZIP" value={form.zip} onChange={v => setForm({ ...form, zip: v })} required />
+          <Field label="PIN code" value={form.zip} onChange={v => setForm({ ...form, zip: v })} required />
         </div>
         {orderError && (
           <div className="p-4 squircle-sm bg-destructive/10 border border-destructive/20 text-destructive text-sm">
             {orderError}
           </div>
         )}
-        <button disabled={loading} className="w-full bg-forest text-paper squircle h-14 font-medium hover:bg-forest/90 disabled:opacity-50 flex items-center justify-center gap-2">
-          <Lock className="w-4 h-4" /> {loading ? 'Placing order…' : `Place order — ${formatPrice(total)}`}
+        <button disabled={loading} className="w-full bg-[#25D366] text-white squircle h-14 font-medium hover:bg-[#20bd5a] disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+          <MessageCircle className="w-5 h-5" /> {loading ? 'Placing order…' : `Order via WhatsApp — ${formatPrice(total)}`}
         </button>
       </form>
       <div className="bg-card squircle-lg p-6 border border-border h-fit">
@@ -122,3 +160,4 @@ function Field({ label, value, onChange, type = 'text', required, className = ''
     </label>
   );
 }
+
